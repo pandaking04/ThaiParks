@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Read(//c/Users/PPI-K/Desktop/Project/**)"
+    ]
+  }
+}
