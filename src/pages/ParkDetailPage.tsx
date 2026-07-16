@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useParkDetail } from '../hooks/useParkDetail'
 import { activityIcon, attractionTypeIcon, difficultyInfo, facilityIcon } from '../constants/parks'
@@ -6,7 +6,19 @@ import { ParkLocationMap } from '../components/ParkLocationMap'
 
 export function ParkDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const { park, attractions, trails, loading, error } = useParkDetail(id)
+  const { park, attractions, trails, images, loading, error } = useParkDetail(id)
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (lightboxIndex === null || images.length === 0) return
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setLightboxIndex(null)
+      if (e.key === 'ArrowRight') setLightboxIndex((i) => (i === null ? i : (i + 1) % images.length))
+      if (e.key === 'ArrowLeft') setLightboxIndex((i) => (i === null ? i : (i - 1 + images.length) % images.length))
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [lightboxIndex, images.length])
 
   if (loading) {
     return <div className="text-center py-24 text-ink-faint text-[15px]">กำลังโหลดข้อมูลอุทยาน…</div>
@@ -27,6 +39,7 @@ export function ParkDetailPage() {
   const feeLabel = fee == null ? 'ไม่มีข้อมูล' : fee === 0 ? 'ฟรี' : `${fee.toLocaleString('th-TH')}฿`
 
   return (
+    <>
     <div className="fade max-w-[900px] mx-auto px-[30px] pt-5 pb-[60px]">
       <Link to="/" className="inline-flex items-center gap-1.5 font-semibold text-[13px] text-ink-muted mb-3.5">
         ← กลับ
@@ -38,6 +51,21 @@ export function ParkDetailPage() {
       >
         {!park.image_url && <span className="ph-l">รูปอุทยาน</span>}
       </div>
+
+      {images.length > 0 && (
+        <div className="flex gap-2.5 overflow-x-auto pb-1.5 mb-5">
+          {images.map((img, i) => (
+            <button
+              key={img.id}
+              type="button"
+              onClick={() => setLightboxIndex(i)}
+              className="flex-none w-24 h-16 rounded-lg overflow-hidden border border-black/8"
+            >
+              <img src={img.image_url} alt="" className="w-full h-full object-cover" />
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="flex items-center gap-2.5 flex-wrap mb-1.5">
         <h1 className="font-heading font-bold text-[32px] text-forest m-0">{park.name_th}</h1>
@@ -216,6 +244,55 @@ export function ParkDetailPage() {
         </div>
       </div>
     </div>
+
+    {lightboxIndex !== null && images.length > 0 && (
+      <div
+        className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center px-6"
+        onClick={() => setLightboxIndex(null)}
+      >
+        <button
+          type="button"
+          onClick={() => setLightboxIndex(null)}
+          className="absolute top-5 right-6 text-white/80 text-2xl leading-none"
+          aria-label="ปิด"
+        >
+          ✕
+        </button>
+        {images.length > 1 && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              setLightboxIndex((i) => (i === null ? i : (i - 1 + images.length) % images.length))
+            }}
+            className="absolute left-4 text-white/80 text-3xl px-3 py-2"
+            aria-label="รูปก่อนหน้า"
+          >
+            ‹
+          </button>
+        )}
+        <img
+          src={images[lightboxIndex].image_url}
+          alt=""
+          className="max-w-full max-h-[85vh] rounded-lg"
+          onClick={(e) => e.stopPropagation()}
+        />
+        {images.length > 1 && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              setLightboxIndex((i) => (i === null ? i : (i + 1) % images.length))
+            }}
+            className="absolute right-4 text-white/80 text-3xl px-3 py-2"
+            aria-label="รูปถัดไป"
+          >
+            ›
+          </button>
+        )}
+      </div>
+    )}
+    </>
   )
 }
 

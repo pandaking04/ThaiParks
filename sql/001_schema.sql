@@ -66,12 +66,26 @@ create table trails (
 create index trails_park_id_idx on trails (park_id);
 
 -- ---------------------------------------------------------------------------
+-- park_images — photo gallery images belonging to a park (0..n per park)
+-- ---------------------------------------------------------------------------
+create table park_images (
+  id            uuid primary key default gen_random_uuid(),
+  park_id       uuid not null references national_parks(id) on delete cascade,
+  image_url     text not null,
+  created_at    timestamptz not null default now()
+);
+
+create index park_images_park_id_idx on park_images (park_id);
+
+-- ---------------------------------------------------------------------------
 -- Row Level Security — public read-only (writes via SQL editor / service role)
 -- ---------------------------------------------------------------------------
 alter table national_parks enable row level security;
 alter table attractions enable row level security;
 alter table trails enable row level security;
+alter table park_images enable row level security;
 
 create policy "national_parks are publicly readable" on national_parks for select using (true);
 create policy "attractions are publicly readable" on attractions for select using (true);
 create policy "trails are publicly readable" on trails for select using (true);
+create policy "park_images are publicly readable" on park_images for select using (true);

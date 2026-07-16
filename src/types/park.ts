@@ -30,6 +30,12 @@ export interface Attraction {
   image_url: string | null;
 }
 
+export interface ParkImage {
+  id: string;
+  park_id: string;
+  image_url: string;
+}
+
 export type TrailDifficulty = "easy" | "moderate" | "hard";
 
 export interface Trail {
