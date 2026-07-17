@@ -1,24 +1,57 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useParkDetail } from '../hooks/useParkDetail'
 import { activityIcon, attractionTypeIcon, difficultyInfo, facilityIcon } from '../constants/parks'
 import { ParkLocationMap } from '../components/ParkLocationMap'
+import { AttractionModal } from '../components/AttractionModal'
+import { TrailModal } from '../components/TrailModal'
+import type { Attraction, Trail } from '../types/park'
 
 export function ParkDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { park, attractions, trails, images, loading, error } = useParkDetail(id)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
+  const [selectedAttraction, setSelectedAttraction] = useState<Attraction | null>(null)
+  const [selectedTrail, setSelectedTrail] = useState<Trail | null>(null)
+  const activitiesRef = useRef<HTMLDivElement>(null)
+  const dragState = useRef({ dragging: false, startX: 0, startScrollLeft: 0 })
+
+  function onActivitiesWheel(e: React.WheelEvent<HTMLDivElement>) {
+    const el = activitiesRef.current
+    if (!el) return
+    el.scrollLeft += e.deltaY
+  }
+
+  function onActivitiesMouseDown(e: React.MouseEvent<HTMLDivElement>) {
+    const el = activitiesRef.current
+    if (!el) return
+    dragState.current = { dragging: true, startX: e.pageX, startScrollLeft: el.scrollLeft }
+  }
+
+  function onActivitiesMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+    const el = activitiesRef.current
+    if (!el || !dragState.current.dragging) return
+    el.scrollLeft = dragState.current.startScrollLeft - (e.pageX - dragState.current.startX)
+  }
+
+  function stopActivitiesDrag() {
+    dragState.current.dragging = false
+  }
+
+  const galleryImages = park?.image_url ? [{ id: 'cover', image_url: park.image_url }, ...images] : images
+  const coverOffset = park?.image_url ? 1 : 0
 
   useEffect(() => {
-    if (lightboxIndex === null || images.length === 0) return
+    if (lightboxIndex === null || galleryImages.length === 0) return
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') setLightboxIndex(null)
-      if (e.key === 'ArrowRight') setLightboxIndex((i) => (i === null ? i : (i + 1) % images.length))
-      if (e.key === 'ArrowLeft') setLightboxIndex((i) => (i === null ? i : (i - 1 + images.length) % images.length))
+      if (e.key === 'ArrowRight') setLightboxIndex((i) => (i === null ? i : (i + 1) % galleryImages.length))
+      if (e.key === 'ArrowLeft')
+        setLightboxIndex((i) => (i === null ? i : (i - 1 + galleryImages.length) % galleryImages.length))
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [lightboxIndex, images.length])
+  }, [lightboxIndex, galleryImages.length])
 
   if (loading) {
     return <div className="text-center py-24 text-ink-faint text-[15px]">กำลังโหลดข้อมูลอุทยาน…</div>
@@ -40,17 +73,24 @@ export function ParkDetailPage() {
 
   return (
     <>
-    <div className="fade max-w-[900px] mx-auto px-[30px] pt-5 pb-[60px]">
+    <div className="fade max-w-[900px] mx-auto px-4 sm:px-[30px] pt-5 pb-[60px]">
       <Link to="/" className="inline-flex items-center gap-1.5 font-semibold text-[13px] text-ink-muted mb-3.5">
         ← กลับ
       </Link>
 
-      <div
-        className="ph relative h-[280px] rounded-2xl mb-5 bg-cover bg-center"
-        style={park.image_url ? { backgroundImage: `url(${park.image_url})`, background: 'none' } : undefined}
-      >
-        {!park.image_url && <span className="ph-l">รูปอุทยาน</span>}
-      </div>
+      {park.image_url ? (
+        <button
+          type="button"
+          onClick={() => setLightboxIndex(0)}
+          className="block w-full h-[200px] sm:h-[280px] rounded-2xl mb-5 bg-cover bg-center"
+          style={{ backgroundImage: `url(${park.image_url})` }}
+          aria-label="ดูรูปอุทยานขนาดใหญ่"
+        />
+      ) : (
+        <div className="ph relative h-[200px] sm:h-[280px] rounded-2xl mb-5 bg-cover bg-center">
+          <span className="ph-l">รูปอุทยาน</span>
+        </div>
+      )}
 
       {images.length > 0 && (
         <div className="flex gap-2.5 overflow-x-auto pb-1.5 mb-5">
@@ -58,7 +98,7 @@ export function ParkDetailPage() {
             <button
               key={img.id}
               type="button"
-              onClick={() => setLightboxIndex(i)}
+              onClick={() => setLightboxIndex(i + coverOffset)}
               className="flex-none w-24 h-16 rounded-lg overflow-hidden border border-black/8"
             >
               <img src={img.image_url} alt="" className="w-full h-full object-cover" />
@@ -68,7 +108,7 @@ export function ParkDetailPage() {
       )}
 
       <div className="flex items-center gap-2.5 flex-wrap mb-1.5">
-        <h1 className="font-heading font-bold text-[32px] text-forest m-0">{park.name_th}</h1>
+        <h1 className="font-heading font-bold text-[24px] sm:text-[32px] text-forest m-0">{park.name_th}</h1>
       </div>
       {park.name_en && <div className="font-mono text-sm text-ink-faint mb-1.5">{park.name_en}</div>}
       {park.highlights && (
@@ -87,7 +127,7 @@ export function ParkDetailPage() {
       </div>
 
       <div className="flex gap-6 items-start flex-wrap">
-        <div className="flex-1 min-w-[300px]">
+        <div className="flex-1 min-w-0 sm:min-w-[300px]">
           <div className="grid grid-cols-3 gap-2.5 mb-6">
             <Fact label="ค่าเข้าอุทยาน" value={feeLabel} />
             <Fact label="เวลาเปิด-ปิด" value={park.open_hours ?? 'ไม่มีข้อมูล'} />
@@ -101,7 +141,15 @@ export function ParkDetailPage() {
           {park.activities && park.activities.length > 0 && (
             <>
               <SectionTitle>กิจกรรม</SectionTitle>
-              <div className="flex gap-2.5 overflow-x-auto pb-1.5 mb-6.5">
+              <div
+                ref={activitiesRef}
+                onWheel={onActivitiesWheel}
+                onMouseDown={onActivitiesMouseDown}
+                onMouseMove={onActivitiesMouseMove}
+                onMouseUp={stopActivitiesDrag}
+                onMouseLeave={stopActivitiesDrag}
+                className="no-scrollbar flex gap-2.5 overflow-x-auto pb-1.5 mb-6.5 cursor-grab active:cursor-grabbing select-none"
+              >
                 {park.activities.map((a) => (
                   <div key={a} className="flex-none flex flex-col items-center gap-1.5 w-16">
                     <div className="w-13 h-13 rounded-2xl bg-forest-light flex items-center justify-center text-2xl">
@@ -119,13 +167,15 @@ export function ParkDetailPage() {
               <SectionTitle>จุดท่องเที่ยว</SectionTitle>
               <div className="grid grid-cols-[repeat(auto-fill,minmax(210px,1fr))] gap-3.5 mb-6.5">
                 {attractions.map((a) => (
-                  <div
+                  <button
                     key={a.id}
-                    className="trail-card border border-black/8 rounded-2xl overflow-hidden bg-white flex flex-col"
+                    type="button"
+                    onClick={() => setSelectedAttraction(a)}
+                    className="trail-card text-left border border-black/8 rounded-2xl overflow-hidden bg-white flex flex-col transition-shadow hover:shadow-[0_10px_26px_rgba(31,61,43,.14)]"
                   >
                     <div
                       className="ph relative h-[108px] flex-none bg-cover bg-center"
-                      style={a.image_url ? { backgroundImage: `url(${a.image_url})`, background: 'none' } : undefined}
+                      style={a.image_url ? { backgroundImage: `url(${a.image_url})` } : undefined}
                     >
                       {!a.image_url && <span className="ph-l">{a.type ?? 'จุดท่องเที่ยว'}</span>}
                       {a.type && (
@@ -142,7 +192,7 @@ export function ParkDetailPage() {
                         <div className="clamp2 text-xs leading-[1.5] text-ink-muted">{a.description}</div>
                       )}
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             </>
@@ -162,30 +212,19 @@ export function ParkDetailPage() {
                 {trails.map((t) => {
                   const diff = difficultyInfo(t.difficulty)
                   return (
-                    <div
+                    <button
                       key={t.id}
-                      className="border border-black/8 rounded-2xl bg-white px-4 py-3.5 flex items-center gap-4 flex-wrap"
+                      type="button"
+                      onClick={() => setSelectedTrail(t)}
+                      className="text-left border border-black/8 rounded-2xl bg-white px-4 py-3.5 flex items-center gap-4 flex-wrap transition-shadow hover:shadow-[0_10px_26px_rgba(31,61,43,.14)]"
                     >
-                      <div className="flex-1 min-w-[160px]">
-                        <div className="font-heading font-semibold text-sm text-forest mb-1">
-                          {t.trail_name}
-                        </div>
-                        {t.description && (
-                          <div className="text-xs leading-[1.5] text-ink-muted">{t.description}</div>
-                        )}
+                      <div className="flex-1 min-w-[160px] font-heading font-semibold text-sm text-forest">
+                        {t.trail_name}
                       </div>
-                      <div className="flex items-center gap-2 flex-none flex-wrap">
-                        <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${diff.className}`}>
-                          {diff.label}
-                        </span>
-                        {t.distance_km != null && (
-                          <span className="text-[11px] font-mono text-ink-muted">📏 {t.distance_km} กม.</span>
-                        )}
-                        {t.duration && (
-                          <span className="text-[11px] font-mono text-ink-muted">⏱ {t.duration}</span>
-                        )}
-                      </div>
-                    </div>
+                      <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${diff.className}`}>
+                        {diff.label}
+                      </span>
+                    </button>
                   )
                 })}
               </div>
@@ -202,7 +241,7 @@ export function ParkDetailPage() {
           )}
         </div>
 
-        <div className="w-[238px] flex-none sticky top-[78px]">
+        <div className="w-full sm:w-[238px] flex-none sm:sticky sm:top-[78px]">
           <div className="bg-white border border-black/10 rounded-2xl p-4.5 shadow-[0_6px_22px_rgba(31,61,43,.08)]">
             {park.facilities && park.facilities.length > 0 && (
               <>
@@ -213,9 +252,13 @@ export function ParkDetailPage() {
                   {park.facilities.map((f) => (
                     <span
                       key={f}
-                      className="flex items-center gap-1 bg-[#f9f7f2] text-[11px] text-ink-soft px-2.5 py-1.5 rounded-lg"
+                      className="group relative flex items-center justify-center gap-1 bg-[#f9f7f2] text-ink-soft rounded-lg px-2.5 py-1.5 md:w-9 md:h-9 md:p-0"
                     >
-                      {facilityIcon(f)} {f}
+                      <span className="text-base leading-none">{facilityIcon(f)}</span>
+                      <span className="text-[11px] md:hidden">{f}</span>
+                      <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-10 hidden md:block whitespace-nowrap rounded-md bg-forest text-cream-light text-[10.5px] px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {f}
+                      </span>
                     </span>
                   ))}
                 </div>
@@ -245,7 +288,7 @@ export function ParkDetailPage() {
       </div>
     </div>
 
-    {lightboxIndex !== null && images.length > 0 && (
+    {lightboxIndex !== null && galleryImages.length > 0 && (
       <div
         className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center px-6"
         onClick={() => setLightboxIndex(null)}
@@ -258,12 +301,12 @@ export function ParkDetailPage() {
         >
           ✕
         </button>
-        {images.length > 1 && (
+        {galleryImages.length > 1 && (
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation()
-              setLightboxIndex((i) => (i === null ? i : (i - 1 + images.length) % images.length))
+              setLightboxIndex((i) => (i === null ? i : (i - 1 + galleryImages.length) % galleryImages.length))
             }}
             className="absolute left-4 text-white/80 text-3xl px-3 py-2"
             aria-label="รูปก่อนหน้า"
@@ -272,17 +315,17 @@ export function ParkDetailPage() {
           </button>
         )}
         <img
-          src={images[lightboxIndex].image_url}
+          src={galleryImages[lightboxIndex].image_url}
           alt=""
           className="max-w-full max-h-[85vh] rounded-lg"
           onClick={(e) => e.stopPropagation()}
         />
-        {images.length > 1 && (
+        {galleryImages.length > 1 && (
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation()
-              setLightboxIndex((i) => (i === null ? i : (i + 1) % images.length))
+              setLightboxIndex((i) => (i === null ? i : (i + 1) % galleryImages.length))
             }}
             className="absolute right-4 text-white/80 text-3xl px-3 py-2"
             aria-label="รูปถัดไป"
@@ -292,6 +335,12 @@ export function ParkDetailPage() {
         )}
       </div>
     )}
+
+    {selectedAttraction && (
+      <AttractionModal attraction={selectedAttraction} onClose={() => setSelectedAttraction(null)} />
+    )}
+
+    {selectedTrail && <TrailModal trail={selectedTrail} onClose={() => setSelectedTrail(null)} />}
     </>
   )
 }

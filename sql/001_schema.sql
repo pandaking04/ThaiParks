@@ -60,6 +60,7 @@ create table trails (
   difficulty    text,
   distance_km   numeric,
   duration      text,
+  image_url     text,
   created_at    timestamptz not null default now()
 );
 

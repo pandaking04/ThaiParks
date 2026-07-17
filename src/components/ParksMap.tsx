@@ -63,11 +63,29 @@ export function ParksMap({ parks, parkCoords, userCoords }: Props) {
           return (
             <Marker key={p.id} position={[c.lat, c.lng]} icon={parkPin}>
               <Popup>
-                <div className="font-heading font-semibold text-sm text-forest mb-0.5">{p.name_th}</div>
-                <div className="text-xs text-ink-faint mb-1.5">{p.province}</div>
-                <Link to={`/parks/${p.id}`} className="text-xs font-semibold text-clay">
-                  ดูรายละเอียด →
-                </Link>
+                <div className="flex gap-2 items-start w-[220px]">
+                  <div
+                    className="relative w-12 h-12 rounded-md overflow-hidden shrink-0 bg-cover bg-center"
+                    style={p.image_url ? { backgroundImage: `url(${p.image_url})` } : undefined}
+                  >
+                    {!p.image_url && (
+                      <div className="ph absolute inset-0">
+                        <span className="ph-l" style={{ padding: '1px 3px', fontSize: '8px' }}>
+                          🌲
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-heading font-semibold text-sm text-forest mb-0.5 leading-snug">
+                      {p.name_th}
+                    </div>
+                    <div className="text-xs text-ink-faint mb-1.5">{p.province}</div>
+                    <Link to={`/parks/${p.id}`} className="text-xs font-semibold text-clay">
+                      ดูรายละเอียด →
+                    </Link>
+                  </div>
+                </div>
               </Popup>
             </Marker>
           )

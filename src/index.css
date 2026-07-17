@@ -78,6 +78,15 @@
   .pulse-ring {
     animation: pulseRing 1.8s ease-out infinite;
   }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @keyframes pulseRing {

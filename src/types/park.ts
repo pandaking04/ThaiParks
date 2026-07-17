@@ -46,4 +46,5 @@ export interface Trail {
   difficulty: string | null;
   distance_km: number | null;
   duration: string | null;
+  image_url: string | null;
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useSavedParksContext } from '../context/SavedParksContext'
+import { FEEDBACK_FORM_URL } from '../constants/links'
 
 export function Navbar() {
   const { savedCount } = useSavedParksContext()
@@ -27,6 +28,14 @@ export function Navbar() {
         </div>
       </Link>
       <div className="flex items-center gap-3 flex-shrink-0">
+        <a
+          href={FEEDBACK_FORM_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hidden sm:flex items-center gap-1.5 px-4 py-2 rounded-full bg-white border border-black/10 font-semibold text-[13px] text-forest whitespace-nowrap hover:border-clay/40 transition"
+        >
+          💬 <span>Feedback</span>
+        </a>
         <div className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-white border border-black/10 font-semibold text-[13px] text-forest whitespace-nowrap">
           ♥ <span>ที่บันทึก</span>
           <span className="min-w-[18px] h-[18px] px-1.5 rounded-full bg-clay text-white text-[11px] font-mono font-semibold inline-flex items-center justify-center">
